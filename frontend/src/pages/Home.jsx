@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
+import { FaHeart, FaHeartbeat, FaLungs } from "react-icons/fa";
+
 
 const Home = () => {
+  const username = localStorage.getItem('username') || 'Guest';
   const [location, setLocation] = useState({ city: '', country: '' });
   const [currentTime, setCurrentTime] = useState('');
   const [disease, setDisease] = useState('');
@@ -9,9 +13,16 @@ const Home = () => {
 
   // Fetch current date and time
   useEffect(() => {
+  const updateTime = () => {
     const now = new Date();
     setCurrentTime(now.toLocaleString());
-  }, []);
+  };
+
+  updateTime(); // initialize immediately
+  const interval = setInterval(updateTime, 1000); // update every 1 sec
+
+  return () => clearInterval(interval); // cleanup on unmount
+}, []);
 
   // Fetch user location using browser's geolocation API
   useEffect(() => {
@@ -53,37 +64,62 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-100 flex flex-col items-center justify-center p-4">
-      <div className="bg-white shadow-xl rounded-2xl p-6 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">🌿 Personal Health Planner</h1>
+    <>
+        <Header />
+        <div className="min-h-screen bg-gradient-to-br from-blue-200 to-violet-300 flex items-center justify-center p-1">
+            <div className="bg-white shadow-xl rounded-2xl p-10 w-full max-w-7xl">
+            {/* Welcome Section */}
+            <h1 className="text-4xl font-bold text-center mb-2">Welcome, {username}!</h1>
+            <p className="text-center text-gray-600 mb-6" >
+                Select your health condition to get better recommendations.
+            </p>
 
-        <div className="mb-4 text-center text-gray-700">
-          <p><strong>Date & Time:</strong> {currentTime}</p>
-          <p><strong>Location:</strong> {location.city}, {location.country}</p>
+            {/* Disease Cards */}
+            <div className="grid py-6 grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div
+                onClick={() => setDisease('diabetes')}
+                className={`cursor-pointer border-2 bg-blue-100 rounded-xl px-6 py-14 flex flex-col items-center shadow-md transition hover:scale-105 ${disease === 'diabetes' ? 'border-blue-500' : 'border-gray-200'}`}
+                >
+                <FaHeart className="text-pink-500 text-4xl mx-auto mb-2" />
+                <p className="text-xl font-semibold">Diabetes</p>
+                </div>
+
+                <div
+                onClick={() => setDisease('cholestrol')}
+                className={`cursor-pointer border-2 bg-blue-100 rounded-xl px-6 py-14 flex flex-col items-center shadow-md transition hover:scale-105 ${disease === 'cholestrol' ? 'border-blue-500' : 'border-gray-200'}`}
+                >
+                <FaHeartbeat className="text-yellow-500 text-4xl mx-auto mb-2" />
+                <p className="text-xl font-semibold">Cholestrol</p>
+                </div>
+
+                <div
+                onClick={() => setDisease('asthma')}
+                className={`cursor-pointer border-2 bg-blue-100 rounded-xl px-6 py-14 flex flex-col items-center shadow-md transition hover:scale-105 ${disease === 'asthma' ? 'border-blue-500' : 'border-gray-200'}`}
+                >
+                <FaLungs className="text-blue-500 text-4xl mx-auto mb-2" />
+                <p className="text-xl font-semibold">Asthma</p>
+                </div>
+            </div>
+
+            {/* Date, Time, Location */}
+            <div className="mb-8 text-center text-gray-700">
+                <p><strong>Date & Time:</strong> {currentTime}</p>
+                <p><strong>Location:</strong> {location.city}, {location.country}</p>
+            </div>
+
+            {/* Button */}
+            <div className="text-center">
+                <button
+                onClick={handleSubmit}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-10 py-5 rounded-lg transition mb-4 shadow-lg"
+                >
+                Get My Plan
+                </button>
+            </div>
+            </div>
         </div>
+    </>
 
-        <div className="mb-6">
-          <label className="block mb-2 font-semibold text-gray-800">Select a Condition:</label>
-          <select
-            value={disease}
-            onChange={(e) => setDisease(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-400"
-          >
-            <option value="">-- Choose Disease --</option>
-            <option value="diabetes">Diabetes</option>
-            <option value="cholestrol">Cholestrol</option>
-            <option value="asthma">Asthma</option>
-          </select>
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-md transition"
-        >
-          Get My Plan
-        </button>
-      </div>
-    </div>
   );
 };
 
