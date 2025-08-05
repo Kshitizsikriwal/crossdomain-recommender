@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [authError, setAuthError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // ✅ Validate email format
   const validateEmail = (value) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!regex.test(value)) {
@@ -21,48 +22,66 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Extra email validation before submission
-    if (emailError || !email || !password) {
+    setAuthError("");
+    setSuccessMessage("");
+
+    if (!email || !password) {
+      setAuthError("Please fill in both fields");
       return;
     }
 
     try {
-      const response = await fetch("http://localhost:8000/login", {
+      const response = await fetch("http://127.0.0.1:8000/user/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        throw new Error("Login failed");
-      }
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data);
+        console.log('Logged in name:', data.name);
+        console.log('Loggen in gender: ', data.gender);
+        // Save user details to localStorage
+        localStorage.setItem("username", data.name);
+        localStorage.setItem("email", data.email);
+        localStorage.setItem("gender", data.gender);
+        localStorage.setItem("isLoggedIn", "true");
 
-      const data = await response.json();
-      console.log("✅ Login success:", data);
-      setAuthError("");
-      // Redirect to dashboard
-      navigate("/dashboard");
-    } catch (err) {
-      setAuthError("Email or password is incorrect.");
+        setSuccessMessage("Login successful! Redirecting to Home...");
+        setTimeout(() => navigate("/home"), 2000);
+      } else {
+        const error = await response.json();
+        setAuthError(error.detail || "Invalid email or password");
+      }
+    } catch (error) {
+      setAuthError("Server error. Please try again.");
+      console.error("Login failed:", error);
     }
   };
 
   return (
     <div className="flex h-screen">
-      {/* Left side - Background with Branding */}
-      <div className="w-9/12 bg-cover bg-center relative hidden md:block" style={{ backgroundImage: 'url("https://wallpapercrafter.com/desktop/207824-fruit-food-healthy-and-cheese-hd.jpg")' }}>
+      {/* Left side branding */}
+      <div
+        className="w-9/12 bg-cover bg-center relative hidden md:block"
+        style={{
+          backgroundImage:
+            'url("https://wallpapercrafter.com/desktop/207824-fruit-food-healthy-and-cheese-hd.jpg")',
+        }}
+      >
         <h1 className="text-white text-5xl font-bold text-center leading-snug absolute bottom-20 left-1/2 transform -translate-x-1/2">
           A Healthwise Plan
         </h1>
       </div>
 
-      {/* Right side - Login Form */}
-      <div className="w-7/12 flex items-center justify-center p-10 bg-white">
-        
+      {/* Right side form */}
+      <div className="w-full md:w-7/12 flex items-center justify-center p-10 bg-white">
         <div className="w-full max-w-md space-y-6">
           <div>
-
-            <h2 className="text-3xl font-extrabold text-gray-900">Login to your account</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900">Login</h2>
             <p className="mt-2 text-sm text-gray-600">
               Please enter your registered email and password
             </p>
@@ -106,16 +125,23 @@ const Login = () => {
             </div>
 
             <button
-                type="submit"
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out"
-              >
-                Sign In
-              </button>
+              type="submit"
+              className="w-full bg-teal-700 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out"
+            >
+              Sign In
+            </button>
 
-            {/* ❌ Invalid Login Popup */}
+            {/* Error */}
             {authError && (
               <p className="text-red-600 mt-4 text-sm text-center font-semibold">
                 {authError}
+              </p>
+            )}
+
+            {/* Success */}
+            {successMessage && (
+              <p className="text-green-600 mt-4 text-sm text-center font-semibold">
+                {successMessage}
               </p>
             )}
           </form>

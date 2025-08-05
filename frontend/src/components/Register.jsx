@@ -14,6 +14,9 @@ const Register = () => {
     termsAccepted: false,
   });
 
+  formData.email = formData.email.trim().toLowerCase();
+
+
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -54,24 +57,60 @@ const Register = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const val = type === 'checkbox' ? checked : value;
-    setFormData({ ...formData, [name]: val });
+      setFormData({ ...formData, [name]: val });
     if (name === 'password') handleStrength(val);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  
 
-    if (validateForm()) {
-      // Simulate API call and email check
-      if (formData.email === 'already@exists.com') {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/user/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          age: formData.age,
+          gender: formData.gender
+        })
+      });
+
+    const data = await res.json();
+    console.log(data)
+
+    if (!res.ok) {
+      if (data.detail === "Email already registered") {
         setErrors({ email: 'Email already exists' });
         return;
+      } else {
+        alert("Registration failed.");
+        return;
       }
-
-      setSuccessMessage('Registration successful! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
     }
-  };
+
+    setSuccessMessage('Registration successful! Redirecting to login...');
+    setTimeout(() => navigate('/login'), 2000);
+
+  } 
+  catch (err) {
+    console.error("Registration Error:", err);
+    alert("Something went wrong. Try again.");
+  }
+};
+
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50 p-6">
@@ -186,7 +225,8 @@ const Register = () => {
           )}
 
           <button
-            type="submit"
+            type="submit" 
+            onClick={handleSubmit}
             className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
           >
             Register
