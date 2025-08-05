@@ -7,10 +7,15 @@ from .routes import user
 app = FastAPI()
 app.include_router(user.router, prefix="/user", tags=["User"])
 
+
+# @app.get("/ping")
+# def ping():
+#     return {"message": "pong"}
+
 Base.metadata.create_all(bind=engine)
 
 # Allow CORS from frontend
-origins = ["http://localhost:5173"]  # Your Vite port
+origins = ["http://localhost:5173"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Dependency for DB session
 def get_db():
     db = SessionLocal()
@@ -28,12 +34,13 @@ def get_db():
     finally:
         db.close()
 
-@app.post("/register", response_model=schemas.UserResponse)
-def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db, user)
+# @app.post("/register", response_model=schemas.UserResponse)
+# def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+#     db_user = crud.get_user_by_email(db, user.email)
+#     if db_user:
+#         raise HTTPException(status_code=400, detail="Email already registered")
+#     return crud.create_user(db, user)
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Cross-Domain Recommendation API"}

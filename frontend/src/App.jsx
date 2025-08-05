@@ -2,17 +2,22 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home'; // make sure this path is correct
 import Dashboard from './components/Dashboard'; // make sure this path is correct
 import Login from './components/Login';
-import Register from './components/register';
+import Register from './components/Register';
+import ProtectedRoute from './components/ProtectedRoute';
+
 
 function App() {
-  localStorage.setItem('username', 'Kshitiz');
   localStorage.setItem('profilePic', 'https://your-custom-image.com/kshitiz.jpg');
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<ProtectedRoute> <Dashboard /> </ProtectedRoute> } />
+        <Route path='/login' element={<Login />}/>
+        <Route path="/register" element={<Register />} />
+        <Route path='/home' element={<Home />}/>
+
 
       </Routes>
     </BrowserRouter>

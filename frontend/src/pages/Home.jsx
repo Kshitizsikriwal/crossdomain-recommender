@@ -8,6 +8,7 @@ const Home = () => {
   const username = localStorage.getItem('username') || 'Guest';
   const [location, setLocation] = useState({ city: '', country: '' });
   const [currentTime, setCurrentTime] = useState('');
+  const [currentDay, setCurrentDay] = useState('');
   const [disease, setDisease] = useState('');
   const navigate = useNavigate();
 
@@ -16,10 +17,13 @@ const Home = () => {
   const updateTime = () => {
     const now = new Date();
     setCurrentTime(now.toLocaleString());
+
+    const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+    setCurrentDay(weekday);
   };
 
-  updateTime(); // initialize immediately
-  const interval = setInterval(updateTime, 1000); // update every 1 sec
+  updateTime(); // run once immediately
+  const interval = setInterval(updateTime, 1000); // run every second
 
   return () => clearInterval(interval); // cleanup on unmount
 }, []);
@@ -56,7 +60,7 @@ const Home = () => {
     }
 
     // Save to localStorage or state manager (temp: localStorage)
-    localStorage.setItem('selectedDisease', disease);
+    localStorage.setItem('disease', disease);
     localStorage.setItem('location', `${location.city}, ${location.country}`);
     localStorage.setItem('currentTime', currentTime);
 
@@ -85,11 +89,11 @@ const Home = () => {
                 </div>
 
                 <div
-                onClick={() => setDisease('cholestrol')}
-                className={`cursor-pointer border-2 bg-blue-100 rounded-xl px-6 py-14 flex flex-col items-center shadow-md transition hover:scale-105 ${disease === 'cholestrol' ? 'border-blue-500' : 'border-gray-200'}`}
+                onClick={() => setDisease('cholesterol')}
+                className={`cursor-pointer border-2 bg-blue-100 rounded-xl px-6 py-14 flex flex-col items-center shadow-md transition hover:scale-105 ${disease === 'cholesterol' ? 'border-blue-500' : 'border-gray-200'}`}
                 >
                 <FaHeartbeat className="text-yellow-500 text-4xl mx-auto mb-2" />
-                <p className="text-xl font-semibold">Cholestrol</p>
+                <p className="text-xl font-semibold">Cholesterol</p>
                 </div>
 
                 <div
@@ -103,9 +107,11 @@ const Home = () => {
 
             {/* Date, Time, Location */}
             <div className="mb-8 text-center text-gray-700">
-                <p><strong>Date & Time:</strong> {currentTime}</p>
-                <p><strong>Location:</strong> {location.city}, {location.country}</p>
+              <p><strong>Day:</strong> {currentDay}</p>
+              <p><strong>Date & Time:</strong> {currentTime}</p>
+              <p><strong>Location:</strong> {location.city}, {location.country}</p>
             </div>
+
 
             {/* Button */}
             <div className="text-center">
