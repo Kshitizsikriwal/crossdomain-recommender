@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import yogaImageMap from "./yogaImageMap";
 import Header from './Header';
 
-
 const getTimeOfDay = () => {
   const hour = new Date().getHours();
   if (hour < 11) return "breakfast";
@@ -22,52 +21,53 @@ const getCurrentWeek = () => {
 
 const extractYogaPoseNames = (yogaString) => {
   if (!yogaString) return [];
-
   return yogaString
-    .split(';')  // Split by semicolon
+    .split(';')
     .map(part => {
-      // Extract only the pose name, ignoring duration in brackets
       const match = part.match(/^([^()]+?)(\s*\([^)]*\))?$/);
       return match?.[1]?.trim();
     })
-    .filter(Boolean);  // Remove empty entries
+    .filter(Boolean);
 };
-
-
 
 const Dashboard = () => {
   const [toggle, setToggle] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // NEW: Track JSON dataset & current displayed slot/day
+  const [jsonData, setJsonData] = useState([]);
+  const [timeSlot, setTimeSlot] = useState(getTimeOfDay());
+  const [dayName, setDayName] = useState(getCurrentDay());
+
+  // Store initial real-time day/time for revert feature
+  const realTimeSlot = getTimeOfDay();
+  const realDayName = getCurrentDay();
+
+  // NEW: Flag to disable multiple next clicks
+  const [hasMovedToNext, setHasMovedToNext] = useState(false);
+
+  const timeOrder = ["breakfast", "lunch", "dinner"];
 
   useEffect(() => {
     const fetchData = async () => {
       const disease = localStorage.getItem("disease")?.toLowerCase();
-      const time = getTimeOfDay();
-      const day = getCurrentDay();
       const week = getCurrentWeek();
-
-      console.log("🌐 Fetching data for:", { disease, time, day, week });
-
       const file = week % 2 === 1 ? "/instruct_final_recommendations.json" : "/hermes_final_recommendations.json";
 
       try {
         const res = await fetch(file);
         const json = await res.json();
+        const filteredData = json.filter(item => item.disease.toLowerCase() === disease);
+        setJsonData(filteredData);
 
-        console.log("📦 Loaded JSON entries:", json.length);
-        console.log("📄 Sample entry:", json[0]);
-
-        const filtered = json.find(
+        // Initial plan
+        const initialPlan = filteredData.find(
           item =>
-            item.disease.toLowerCase() === disease &&
-            item.day.toLowerCase() === day.toLowerCase() &&
-            item.time.toLowerCase() === time
+            item.day.toLowerCase() === realDayName.toLowerCase() &&
+            item.time.toLowerCase() === realTimeSlot
         );
-
-        console.log("✅ Fetched recommendation data:", filtered);
-        setData(filtered || {});
+        setData(initialPlan || {});
         setLoading(false);
       } catch (error) {
         console.error("❌ Failed to load recommendations", error);
@@ -75,9 +75,46 @@ const Dashboard = () => {
       }
     };
 
-
     fetchData();
   }, []);
+
+  const handleNextPlan = () => {
+    if (hasMovedToNext) return; // prevent moving further
+
+    const currentIndex = timeOrder.indexOf(timeSlot);
+    let newTime, newDay;
+
+    if (currentIndex < timeOrder.length - 1) {
+      newTime = timeOrder[currentIndex + 1];
+      newDay = dayName;
+    } else {
+      // Wrap to next day's breakfast
+      newTime = timeOrder[0];
+      const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const currentDayIndex = daysOfWeek.indexOf(dayName);
+      newDay = daysOfWeek[(currentDayIndex + 1) % 7];
+    }
+
+    setTimeSlot(newTime);
+    setDayName(newDay);
+
+    const nextPlan = jsonData.find(
+      item => item.day.toLowerCase() === newDay.toLowerCase() && item.time.toLowerCase() === newTime
+    );
+    setData(nextPlan || {});
+    setHasMovedToNext(true);
+  };
+
+  const handleBackToCurrent = () => {
+    setTimeSlot(realTimeSlot);
+    setDayName(realDayName);
+
+    const currentPlan = jsonData.find(
+      item => item.day.toLowerCase() === realDayName.toLowerCase() && item.time.toLowerCase() === realTimeSlot
+    );
+    setData(currentPlan || {});
+    setHasMovedToNext(false);
+  };
 
   if (loading) {
     return (
@@ -87,52 +124,51 @@ const Dashboard = () => {
     );
   }
 
-
-  const current = toggle ? {
-    yoga: {
-      pose: data?.alternative_yoga || "Unknown Pose",
-      exercise: data?.alternative_exercise || "-",
-      precaution: data?.alternative_precaution || "-",
-    },
-    meal: {
-      name: data?.meal_meal_name || "-",
-      description: data?.meal_meal_description || "-",
-      Meal_type: data?.time || "-",
-      nutrients: {
-        Calories: data?.meal_calories || "-",
-        Protein: data?.meal_protein || "-",
-        Carbohydrates: data?.meal_carbohydrates || "-",
-        Fiber: data?.meal_fiber || "-",
-        Fat: data?.meal_fat || "-",
-        Sugar: data?.meal_sugar || "-",
-        Cholesterol: data?.meal_cholesterol || "-",
-        Sodium: data?.meal_sodium || "-"
+  const current = toggle
+    ? {
+        yoga: {
+          pose: data?.alternative_yoga || "Unknown Pose",
+          exercise: data?.alternative_exercise || "-",
+          precaution: data?.alternative_precaution || "-",
+        },
+        meal: {
+          name: data?.meal_meal_name || "-",
+          description: data?.meal_meal_description || "-",
+          Meal_type: data?.time || "-",
+          nutrients: {
+            Calories: data?.meal_calories || "-",
+            Protein: data?.meal_protein || "-",
+            Carbohydrates: data?.meal_carbohydrates || "-",
+            Fiber: data?.meal_fiber || "-",
+            Fat: data?.meal_fat || "-",
+            Sugar: data?.meal_sugar || "-",
+            Cholesterol: data?.meal_cholesterol || "-",
+            Sodium: data?.meal_sodium || "-"
+          }
+        }
       }
-    }
-  } : {
-    yoga: {
-      pose: data?.yoga || "Unknown Pose",
-      exercise: data?.exercise || "-",
-      precaution: data?.precaution || "-",
-    },
-    meal: {
-      name: data?.alternative_meal_meal_name || "-",
-      description: data?.alternative_meal_meal_description || "-",
-      Meal_type: data?.time || "-",
-      nutrients: {
-        Calories: data?.alternative_meal_calories || "-",
-        Protein: data?.alternative_meal_protein || "-",
-        Carbohydrates: data?.alternative_meal_carbohydrates || "-",
-        Fiber: data?.alternative_meal_fiber || "-",
-        Fat: data?.alternative_meal_fat || "-",
-        Sugar: data?.alternative_meal_sugar || "-",
-        Cholesterol: data?.alternative_meal_cholesterol || "-",
-        Sodium: data?.alternative_meal_sodium || "-"
-      }
-    }
-
-  };
-
+    : {
+        yoga: {
+          pose: data?.yoga || "Unknown Pose",
+          exercise: data?.exercise || "-",
+          precaution: data?.precaution || "-",
+        },
+        meal: {
+          name: data?.alternative_meal_meal_name || "-",
+          description: data?.alternative_meal_meal_description || "-",
+          Meal_type: data?.time || "-",
+          nutrients: {
+            Calories: data?.alternative_meal_calories || "-",
+            Protein: data?.alternative_meal_protein || "-",
+            Carbohydrates: data?.alternative_meal_carbohydrates || "-",
+            Fiber: data?.alternative_meal_fiber || "-",
+            Fat: data?.alternative_meal_fat || "-",
+            Sugar: data?.alternative_meal_sugar || "-",
+            Cholesterol: data?.alternative_meal_cholesterol || "-",
+            Sodium: data?.alternative_meal_sodium || "-"
+          }
+        }
+      };
 
   return (
     <>
@@ -145,8 +181,6 @@ const Dashboard = () => {
           {/* Yoga / Exercise Card */}
           <div className="bg-white shadow-lg rounded-lg p-6 w-full md:w-1/2">
             <h2 className="text-2xl font-semibold mb-4 text-green-700 text-center">Yoga & Exercise</h2>
-
-            {/* Render multiple yoga poses */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {extractYogaPoseNames(current.yoga.pose).map((pose, index) => (
                 <div key={index} className="flex flex-col items-center">
@@ -164,7 +198,6 @@ const Dashboard = () => {
             <p><span className="font-semibold">Precaution:</span> {current.yoga.precaution}</p>
           </div>
 
-
           {/* Meal Plan Card */}
           <div
             className="relative shadow-xl rounded-2xl p-6 w-full md:w-1/2 overflow-hidden bg-white"
@@ -175,13 +208,9 @@ const Dashboard = () => {
               backgroundRepeat: 'no-repeat',
             }}
           >
-            {/* Overlay */}
             <div className="absolute inset-0 bg-opacity-25 bg-black rounded-2xl z-0"></div>
-
-            {/* Content */}
             <div className="relative z-10 space-y-4">
               <h2 className="text-3xl font-bold text-center text-red-100"> Meal Plan</h2>
-
               <div>
                 <h3 className="text-xl font-semibold text-white">
                   <span className="text-gray-200">Meal:</span> {current.meal.name}
@@ -216,8 +245,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Button */}
-        <div className="mt-8 flex justify-center">
+        {/* Buttons */}
+        <div className="mt-8 flex gap-4">
           <button
             onClick={() => setToggle(!toggle)}
             className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-6 py-2 rounded-md shadow-md hover:scale-105 transition-transform"
@@ -225,10 +254,26 @@ const Dashboard = () => {
             Generate Alternative Plan
           </button>
 
+          {!hasMovedToNext && (
+            <button
+              onClick={handleNextPlan}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-md shadow-md hover:scale-105 transition-transform"
+            >
+              Next Plan →
+            </button>
+          )}
+
+          {hasMovedToNext && (
+            <button
+              onClick={handleBackToCurrent}
+              className="bg-gradient-to-r from-gray-600 to-gray-800 text-white px-6 py-2 rounded-md shadow-md hover:scale-105 transition-transform"
+            >
+              Back to Current Plan
+            </button>
+          )}
         </div>
       </div>
     </>
-    
   );
 };
 
